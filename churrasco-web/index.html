@@ -3,28 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculador de Churrasco</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Calculadora de Churrasco</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: 500;
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #fafafa;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #ff6f61;
+            box-shadow: 0 0 5px rgba(255, 111, 97, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #ff6f61;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: #e65b50;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #aviso-longo-cozimento {
+            display: none;
+            color: purple;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: center;
+            background-color: #f3e5f5;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        #resultado, #lista-compras {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+
+        #resultado h2, #resultado h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        #resultado ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        #resultado li {
+            margin: 10px 0;
+            font-size: 1.1rem;
+            color: #444;
+        }
+
+        #resultado li strong {
+            color: #ff6f61;
+        }
+
+        #lista-compras {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: #333;
+        }
+
+        #lista-compras strong {
+            color: #ff6f61;
+            font-weight: bold; /* Garantir que o título em <strong> fique em negrito */
+        }
+
+        #copiar-lista {
+            display: none;
+            margin-top: 20px;
+            background-color: #4CAF50;
+        }
+
+        #copiar-lista:hover {
+            background-color: #45a049;
+        }
+
+        .show {
+            display: block !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Calculador de Churrasco - 26/04</h1>
-        <div class="input-section">
-            <label for="adultos">Número de Adultos:</label>
-            <input type="number" id="adultos" min="0" required>
-            <label for="criancas">Número de Crianças:</label>
-            <input type="number" id="criancas" min="0" required>
-            <label for="duracao">Duração (horas):</label>
-            <input type="number" id="duracao" min="0" step="0.1" required>
-            <label for="opcao-carne">Opção de Carne:</label>
-            <select id="opcao-carne">
-                <option value="cara">Cara</option>
-                <option value="barata">Barata</option>
-            </select>
-            <button onclick="calcularChurrasco()">Calcular</button>
-        </div>
-        <div id="resultado" class="result-section"></div>
+        <h1>Calculadora de Churrasco</h1>
+        <label for="adultos">Número de Adultos:</label>
+        <input type="number" id="adultos" min="0">
+
+        <label for="criancas">Número de Crianças:</label>
+        <input type="number" id="criancas" min="0">
+
+        <label for="duracao">Duração do Churrasco (horas):</label>
+        <input type="number" id="duracao" step="0.5" min="0">
+
+        <label for="opcao-carne">Opção de Carne:</label>
+        <select id="opcao-carne">
+            <option value="premium">Premium</option>
+            <option value="beneficio">Custo-Benefício</option>
+        </select>
+
+        <label for="variacao">Nível de Variação:</label>
+        <select id="variacao">
+            <option value="baixa">Baixa</option>
+            <option value="alta">Alta</option>
+        </select>
+
+        <button onclick="calcularChurrasco()">Calcular</button>
+
+        <div id="aviso-longo-cozimento"></div>
+        <div id="resultado"></div>
+        <div id="lista-compras"></div>
+        <button id="copiar-lista" onclick="copiarLista()">Copiar Orçamento</button>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
