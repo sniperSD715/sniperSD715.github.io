@@ -120,74 +120,121 @@ function calcularChurrasco() {
         }
         console.log("Opções de carne selecionadas:", opcoesCarne);
 
+        // Função para arredondar para 1 casa decimal
+        function arredondar(valor) {
+            return Math.round(valor * 10) / 10;
+        }
+
+        // Função para ajustar para múltiplos de 0.5 (pacotes de 500g)
+        function ajustarParaPacote(valor) {
+            return Math.round(valor / 0.5) * 0.5;
+        }
+
         // Função para distribuir quantidades com variação e proporções
         function distribuirQuantidade(total, produtosDisponiveis, limiteMaximo = 2.5, minimoPorTipo = 1, isPacote = false) {
             if (total <= 0 || produtosDisponiveis.length === 0) return [];
             
             let distribuicao = [];
-            let restante = total;
+            let restante = arredondar(total);
 
             if (nivelVariacao === "baixa") {
-                for (let produto of produtosDisponiveis) {
-                    if (restante <= 0) break;
-                    let quantidade = Math.min(restante, limiteMaximo);
-                    if (isPacote) {
+                const numProdutos = produtosDisponiveis.length;
+                let quantidadePorTipo = arredondar(total / numProdutos);
+
+                if (quantidadePorTipo < minimoPorTipo && total >= minimoPorTipo) {
+                    quantidadePorTipo = minimoPorTipo;
+                }
+
+                for (let i = 0; i < numProdutos; i++) {
+                    let quantidade = quantidadePorTipo;
+                    if (isPacote === "carne") {
+                        quantidade = ajustarParaPacote(quantidade); // Ajustar para múltiplos de 0.5
+                    } else if (isPacote) {
                         let divisor = isPacote === "carne" ? 0.5 : 4;
                         quantidade = Math.round(quantidade / divisor) * divisor;
-                        if (quantidade > restante) quantidade = Math.floor(restante / divisor) * divisor;
                     } else {
-                        quantidade = Math.round(quantidade * 10) / 10; // Arredondar para 1 casa decimal
+                        quantidade = arredondar(quantidade);
                     }
-                    if (quantidade >= minimoPorTipo || (quantidade > 0 && distribuicao.length === 0)) {
-                        distribuicao.push({ nome: produto.nome, quantidade: quantidade, preco: produto.preco });
-                        restante -= quantidade;
+
+                    if (i === numProdutos - 1) {
+                        quantidade = arredondar(restante);
+                        if (isPacote === "carne") {
+                            quantidade = ajustarParaPacote(quantidade);
+                        } else if (isPacote) {
+                            let divisor = isPacote === "carne" ? 0.5 : 4;
+                            quantidade = Math.round(quantidade / divisor) * divisor;
+                        }
+                    }
+
+                    if (quantidade > 0) {
+                        distribuicao.push({
+                            nome: produtosDisponiveis[i].nome,
+                            quantidade: arredondar(Math.min(quantidade, restante)),
+                            preco: produtosDisponiveis[i].preco
+                        });
+                        restante = arredondar(restante - quantidade);
                     }
                 }
+
                 if (restante > 0 && distribuicao.length > 0) {
                     let ultimo = distribuicao[distribuicao.length - 1];
-                    let ajuste = Math.round(restante * 10) / 10; // Ajuste com 1 casa decimal
-                    if (isPacote) {
+                    let ajuste = arredondar(restante);
+                    if (isPacote === "carne") {
+                        ajuste = ajustarParaPacote(ajuste);
+                    } else if (isPacote) {
                         let divisor = isPacote === "carne" ? 0.5 : 4;
                         ajuste = Math.round((ultimo.quantidade + restante) / divisor) * divisor - ultimo.quantidade;
                     }
-                    ultimo.quantidade += ajuste;
+                    ultimo.quantidade = arredondar(ultimo.quantidade + ajuste);
                 }
             } else {
                 let numTipos = Math.min(produtosDisponiveis.length, Math.floor(total / minimoPorTipo));
-                if (numTipos === 0 && total > 0) numTipos = 1; // Garantir pelo menos 1 tipo se houver quantidade
-                let quantidadePorTipo = Math.round(total / numTipos * 10) / 10; // Arredondar para 1 casa decimal
+                if (numTipos === 0 && total > 0) numTipos = 1;
+                let quantidadePorTipo = arredondar(total / numTipos);
                 if (quantidadePorTipo < minimoPorTipo && total >= minimoPorTipo) {
-                    quantidadePorTipo = Math.round(minimoPorTipo * 10) / 10;
-                    numTipos = Math.floor(total / minimoPorTipo);
+                    quantidadePorTipo = minimoPorTipo;
                 }
                 for (let i = 0; i < numTipos; i++) {
                     let quantidade = quantidadePorTipo;
-                    if (isPacote) {
+                    if (isPacote === "carne") {
+                        quantidade = ajustarParaPacote(quantidade);
+                    } else if (isPacote) {
                         let divisor = isPacote === "carne" ? 0.5 : 4;
                         quantidade = Math.round(quantidade / divisor) * divisor;
                     } else {
-                        quantidade = Math.round(quantidade * 10) / 10; // Arredondar para 1 casa decimal
+                        quantidade = arredondar(quantidade);
                     }
-                    if (restante >= quantidade || (i === 0 && restante > 0)) { // Forçar pelo menos 1 item se houver quantidade
-                        distribuicao.push({ nome: produtosDisponiveis[i % produtosDisponiveis.length].nome, quantidade: Math.min(quantidade, restante), preco: produtosDisponiveis[i % produtosDisponiveis.length].preco });
-                        restante -= quantidade;
+                    if (restante >= quantidade || (i === 0 && restante > 0)) {
+                        distribuicao.push({
+                            nome: produtosDisponiveis[i % produtosDisponiveis.length].nome,
+                            quantidade: arredondar(Math.min(quantidade, restante)),
+                            preco: produtosDisponiveis[i % produtosDisponiveis.length].preco
+                        });
+                        restante = arredondar(restante - quantidade);
                     }
                 }
                 if (restante > 0 && distribuicao.length > 0) {
                     let ultimo = distribuicao[distribuicao.length - 1];
-                    let ajuste = Math.round(restante * 10) / 10;
-                    if (isPacote) {
+                    let ajuste = arredondar(restante);
+                    if (isPacote === "carne") {
+                        ajuste = ajustarParaPacote(ajuste);
+                    } else if (isPacote) {
                         let divisor = isPacote === "carne" ? 0.5 : 4;
                         ajuste = Math.round((ultimo.quantidade + restante) / divisor) * divisor - ultimo.quantidade;
                     }
-                    ultimo.quantidade += ajuste;
+                    ultimo.quantidade = arredondar(ultimo.quantidade + ajuste);
                 }
             }
+
             let soma = distribuicao.reduce((sum, item) => sum + item.quantidade, 0);
-            if (soma !== total && distribuicao.length > 0) {
-                let diferenca = Math.round((total - soma) * 10) / 10;
-                distribuicao[0].quantidade += diferenca;
+            if (arredondar(soma) !== arredondar(total) && distribuicao.length > 0) {
+                let diferenca = arredondar(total - soma);
+                if (isPacote === "carne") {
+                    diferenca = ajustarParaPacote(diferenca);
+                }
+                distribuicao[0].quantidade = arredondar(distribuicao[0].quantidade + diferenca);
             }
+
             return distribuicao;
         }
 
@@ -201,49 +248,26 @@ function calcularChurrasco() {
 
         // Calcular consumo total de carne
         let consumoTotalCarne = (adultos * 0.3 + criancas * 0.15) * multiplicador;
+        consumoTotalCarne = arredondar(consumoTotalCarne);
         console.log(`Consumo total de carne: ${consumoTotalCarne} kg`);
 
-        // Ajustar proporção de carnes com base no total
-        let carneBovina = 0;
-        let carneSuina = 0;
-        let carneFrango = 0;
+        // Ajustar proporção de carnes com base no total (50% bovina, 25% suína, 25% frango)
+        let carneBovina = arredondar(consumoTotalCarne * 0.5);
+        let carneSuina = arredondar(consumoTotalCarne * 0.25);
+        let carneFrango = arredondar(consumoTotalCarne * 0.25);
 
-        if (consumoTotalCarne >= 2) {
-            // Proporção padrão: 50% bovina, 25% suíno, 25% frango
-            carneBovina = consumoTotalCarne * 0.5;
-            carneSuina = consumoTotalCarne * 0.25;
-            carneFrango = consumoTotalCarne * 0.25;
+        // Ajustar carne suína e frango para múltiplos de 0.5 (pacotes de 500g)
+        carneSuina = ajustarParaPacote(carneSuina);
+        carneFrango = ajustarParaPacote(carneFrango);
 
-            // Arredondar para valores inteiros ou múltiplos de 0.5
-            carneBovina = Math.round(carneBovina * 10) / 10; // Arredondar para 1 casa decimal
-            carneSuina = Math.round(carneSuina / 0.5) * 0.5; // Múltiplo de 0.5
-            carneFrango = Math.round(carneFrango / 0.5) * 0.5; // Múltiplo de 0.5
-
-            // Ajustar a soma para corresponder ao consumo total
-            let somaCarne = carneBovina + carneSuina + carneFrango;
-            if (somaCarne !== Math.round(consumoTotalCarne * 10) / 10) {
-                let diferenca = (Math.round(consumoTotalCarne * 10) / 10) - somaCarne;
-                carneBovina += diferenca; // Ajustar carne bovina para corrigir a diferença
-                carneBovina = Math.round(carneBovina * 10) / 10; // Garantir arredondamento
-            }
-
-            console.log(`Distribuição para churrasco ≥ 2kg: bovina=${carneBovina}, suína=${carneSuina}, frango=${carneFrango}`);
-        } else {
-            // Regras para churrascos menores (< 2kg)
-            if (consumoTotalCarne >= 1.5) {
-                // 1kg bovina + 0.5kg frango
-                carneBovina = 1;
-                carneFrango = 0.5;
-            } else if (consumoTotalCarne >= 1.2) {
-                // 0.7kg bovina + 0.5kg frango
-                carneBovina = 0.7;
-                carneFrango = 0.5;
-            } else {
-                // Apenas bovina (arredondado para o mais próximo de 100g)
-                carneBovina = Math.round(consumoTotalCarne * 10) / 10;
-            }
-            console.log(`Distribuição para churrasco < 2kg: bovina=${carneBovina}, suína=${carneSuina}, frango=${carneFrango}`);
+        // Ajustar carne bovina para compensar a diferença e manter o total
+        let somaCarne = arredondar(carneBovina + carneSuina + carneFrango);
+        if (somaCarne !== consumoTotalCarne) {
+            let diferenca = arredondar(consumoTotalCarne - somaCarne);
+            carneBovina = arredondar(carneBovina + diferenca);
         }
+
+        console.log(`Distribuição: bovina=${carneBovina}, suína=${carneSuina}, frango=${carneFrango}`);
 
         // Distribuição das carnes
         console.log("Distribuindo carnes...");
@@ -255,9 +279,11 @@ function calcularChurrasco() {
         console.log("Frango:", resultado.frango);
 
         // Verificar se a soma das carnes está correta
-        let somaCarneDistribuida = (resultado.carne_bovina.reduce((sum, item) => sum + item.quantidade, 0) || 0) +
-                                  (resultado.carne_suina.reduce((sum, item) => sum + item.quantidade, 0) || 0) +
-                                  (resultado.frango.reduce((sum, item) => sum + item.quantidade, 0) || 0);
+        let somaCarneDistribuida = arredondar(
+            (resultado.carne_bovina.reduce((sum, item) => sum + item.quantidade, 0) || 0) +
+            (resultado.carne_suina.reduce((sum, item) => sum + item.quantidade, 0) || 0) +
+            (resultado.frango.reduce((sum, item) => sum + item.quantidade, 0) || 0)
+        );
         if (somaCarneDistribuida < consumoTotalCarne && resultado.frango.length === 0 && carneFrango > 0) {
             resultado.frango = distribuirQuantidade(carneFrango, opcoesCarne.frango, 0.5, 0.5, "carne");
             console.log("Ajuste: Frango adicionado após verificação:", resultado.frango);
@@ -266,7 +292,6 @@ function calcularChurrasco() {
         // Calcular pão de alho com regras específicas
         console.log("Calculando pão de alho...");
         let totalPaoDeAlho = Math.round((adultos * consumo.pao_de_alho.adulto + criancas * consumo.pao_de_alho.crianca) * multiplicador);
-        // Garantir pelo menos 1 pacote (4 unidades) se o cálculo for menor
         if (totalPaoDeAlho < 4) {
             totalPaoDeAlho = 4;
         }
@@ -286,7 +311,6 @@ function calcularChurrasco() {
                 ...(frango.length ? frango : [{ nome: "Pão de Alho Frango c/ Requeijão", quantidade: 0, preco: 17.90 }])
             ].filter(item => item.quantidade > 0);
         } else {
-            // Para churrascos menores, usar apenas 1 sabor por pacote
             let numPacotes = Math.ceil(totalPaoDeAlho / 4);
             let tradicional = distribuirQuantidade(numPacotes * 4, produtos.pao_de_alho.slice(0, 1), numPacotes * 4, 4, "pao");
             resultado.pao_de_alho = tradicional.length ? tradicional : [{ nome: "Pão de Alho Tradicional", quantidade: 0, preco: 16.90 }];
@@ -315,7 +339,7 @@ function calcularChurrasco() {
                 if (item === "carne_suina" && subitem.nome === "Picanha Suína") {
                     custoItem += subitem.quantidade * subitem.preco;
                 } else if (item === "carne_suina" || item === "frango") {
-                    custoItem += (subitem.quantidade / 0.5) * subitem.preco;
+                    custoItem += (subitem.quantidade / 0.5) * subitem.preco; // Custo por pacote de 500g
                 } else if (item === "pao_de_alho") {
                     custoItem += (subitem.quantidade / 4) * subitem.preco;
                 } else if (item === "queijo_coalho") {
@@ -332,12 +356,14 @@ function calcularChurrasco() {
                            item === "carne_suina" || item === "frango" ? resultado[item].reduce((sum, i) => sum + Math.ceil(i.quantidade / 0.5), 0) : 0;
         }
 
-        // Calcular quantidade de carvão com obrigatoriedade de pelo menos 1 saco de 3kg
+        // Calcular quantidade de carvão
         console.log("Calculando carvão...");
-        const pesoTotalCarne = resultado.carne_bovina.reduce((sum, item) => sum + item.quantidade, 0) +
-                              resultado.carne_suina.reduce((sum, item) => sum + item.quantidade, 0) +
-                              resultado.frango.reduce((sum, item) => sum + item.quantidade, 0);
-        let quantidadeCarvaoKg = Math.max(Math.round(pesoTotalCarne), 3); // Garantir pelo menos 3kg
+        const pesoTotalCarne = arredondar(
+            resultado.carne_bovina.reduce((sum, item) => sum + item.quantidade, 0) +
+            resultado.carne_suina.reduce((sum, item) => sum + item.quantidade, 0) +
+            resultado.frango.reduce((sum, item) => sum + item.quantidade, 0)
+        );
+        let quantidadeCarvaoKg = Math.max(Math.round(pesoTotalCarne), 3);
         let pacotes3kg = 0;
         let pacotes10kg = 0;
         pacotes10kg = Math.floor(quantidadeCarvaoKg / 10);
@@ -378,7 +404,7 @@ function calcularChurrasco() {
                     } else {
                         custoSubitem = subitem.quantidade * subitem.preco;
                     }
-                    resultadoHTML += `<li>${subitem.nome}: ${subitem.quantidade} ${unidade} (R$${custoSubitem.toFixed(2)})</li>`;
+                    resultadoHTML += `<li>${subitem.nome}: ${arredondar(subitem.quantidade)} ${unidade} (R$${custoSubitem.toFixed(2)})</li>`;
                 }
             } else if (item === "carvao") {
                 resultadoHTML += `<li>Carvão: ${resultado[item]} kg (R$${custos[item].toFixed(2)})</li>`;
@@ -405,18 +431,18 @@ function calcularChurrasco() {
         console.log("Gerando orçamento...");
         const opcaoCarneTexto = opcaoCarne === "premium" ? "Premium" : "Custo Benefício";
         const variacaoTexto = nivelVariacao === "alta" ? "Alta" : "Baixa";
-        let listaCompras = `Orçamento referente a ${adultos} Adultos e ${criancas} Crianças Opção de carne ${opcaoCarneTexto} Taxa de Variedade ${variacaoTexto}\n\nCarne Bovina:\n`;
+        let listaCompras = `<strong>Orçamento referente a ${adultos} Adultos e ${criancas} Crianças Opção de carne ${opcaoCarneTexto} Taxa de Variedade ${variacaoTexto}</strong>\n\nCarne Bovina:\n`;
         for (let subitem of resultado.carne_bovina || []) {
-            listaCompras += `- ${subitem.nome}: ${subitem.quantidade} kg\n`;
+            listaCompras += `- ${subitem.nome}: ${arredondar(subitem.quantidade)} kg\n`;
         }
         listaCompras += "\nCarne Suína:\n";
         for (let subitem of resultado.carne_suina || []) {
             let pacotesTexto = subitem.nome === "Picanha Suína" ? "" : ` (${Math.ceil(subitem.quantidade / 0.5)} pacotes de 500g)`;
-            listaCompras += `- ${subitem.nome}: ${subitem.quantidade} kg${pacotesTexto}\n`;
+            listaCompras += `- ${subitem.nome}: ${arredondar(subitem.quantidade)} kg${pacotesTexto}\n`;
         }
         listaCompras += "\nFrango:\n";
         for (let subitem of resultado.frango || []) {
-            listaCompras += `- ${subitem.nome}: ${subitem.quantidade} kg (${Math.ceil(subitem.quantidade / 0.5)} pacotes de 500g)\n`;
+            listaCompras += `- ${subitem.nome}: ${arredondar(subitem.quantidade)} kg (${Math.ceil(subitem.quantidade / 0.5)} pacotes de 500g)\n`;
         }
         listaCompras += "\nAcompanhamentos:\n";
         for (let subitem of resultado.pao_de_alho || []) {
@@ -456,16 +482,16 @@ function calcularChurrasco() {
 function copiarLista() {
     try {
         if (!window.listaComprasTexto) {
-            alert("Nenhuma lista disponível para copiar. Calcule primeiro.");
+            alert("Nenhum orçamento disponível para copiar. Calcule primeiro.");
             return;
         }
         navigator.clipboard.writeText(window.listaComprasTexto).then(() => {
-            alert("Lista de compras copiada com sucesso!");
+            alert("Orçamento copiado com sucesso!");
         }).catch(err => {
-            alert("Erro ao copiar a lista: " + err);
+            alert("Erro ao copiar o orçamento: " + err);
         });
     } catch (error) {
-        alert("Erro ao copiar a lista: " + error.message);
-        console.error("Erro ao copiar a lista:", error);
+        alert("Erro ao copiar o orçamento: " + error.message);
+        console.error("Erro ao copiar o orçamento:", error);
     }
 }
